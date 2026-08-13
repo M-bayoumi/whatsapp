@@ -21,7 +21,7 @@ try {
 const express = require('express');
 const qrcodeTerminal = require('qrcode-terminal');
 const qrcode = require('qrcode');
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 
 const PORT = process.env.PORT || 3900;
 const API_KEY = process.env.API_KEY || 'CHANGE_THIS_SHARED_SECRET';
@@ -107,7 +107,8 @@ function startClient() {
 startClient();
 
 const app = express();
-app.use(express.json());
+
+app.use(express.json({ limit: '25mb' }));
 
 // Not exposed to the internet - internal network only, and every request still needs the shared
 // secret the .NET side sends via X-Api-Key (see WhatsAppClientOptions/DependencyInjection.cs there).
@@ -152,7 +153,7 @@ app.post('/disconnect', async (req, res) => {
 });
 
 app.post('/send', async (req, res) => {
-  const { phoneNumber, message } = req.body || {};
+  const { phoneNumber, message, attachment } = req.body || {};
 
   if (!phoneNumber || !message) {
     return res.status(400).json({ error: 'phoneNumber and message are both required.' });
@@ -165,7 +166,17 @@ app.post('/send', async (req, res) => {
   try {
     // whatsapp-web.js expects "<countrycode><number>@c.us" - the .NET side already normalizes to a
     // bare digit-only number with country code (e.g. "201012345678") before calling this endpoint.
-    await client.sendMessage(`${phoneNumber}@c.us`, message);
+    const chatId = `${phoneNumber}@c.us`;
+
+    if (attachment && attachment.base64) {
+      // Send the file as media with the message as its caption, so it arrives as a single bubble
+      // (e.g. the order-confirmed message with its invoice PDF attached) instead of two separate sends.
+      const media = new MessageMedia(attachment.mimeType, attachment.base64, attachment.fileName);
+      await client.sendMessage(chatId, media, { caption: message });
+    } else {
+      await client.sendMessage(chatId, message);
+    }
+
     res.json({ success: true });
   } catch (err) {
     res.status(502).json({ error: err.message || 'Failed to send message.' });
