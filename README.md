@@ -1,6 +1,6 @@
 # whatsapp-service
 
-Minimal internal-network bridge in front of a persistent WhatsApp Web session (`whatsapp-web.js`), used by the NexusEcommerce backend's WhatsApp notification outbox. Kept as a separate process/project from the .NET backend on purpose - it's the only thing in this repo that needs a headless Chromium session.
+Minimal internal-network bridge in front of a persistent WhatsApp session ([Baileys](https://github.com/WhiskeySockets/Baileys)), used by the NexusEcommerce backend's WhatsApp notification outbox. Kept as a separate process/project from the .NET backend on purpose. Talks WhatsApp's multi-device protocol directly over a WebSocket - no headless browser involved, unlike the earlier `whatsapp-web.js`-based version.
 
 ## Setup
 
@@ -11,7 +11,7 @@ copy .env.example .env   # then edit API_KEY to match backend appsettings' Whats
 npm start
 ```
 
-On first run, scan the printed QR code with WhatsApp on your phone (Linked Devices -> Link a Device). The session is saved to `.wwebjs_auth/` and reused on every restart - no need to scan again unless that folder is deleted or the device is unlinked from your phone.
+On first run, scan the printed QR code with WhatsApp on your phone (Linked Devices -> Link a Device). The session is saved to `baileys_auth/` and reused on every restart - no need to scan again unless that folder is deleted or the device is unlinked from your phone.
 
 ## Endpoints
 
